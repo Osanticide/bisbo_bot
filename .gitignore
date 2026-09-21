@@ -1,0 +1,9 @@
+# Segredos
+.env
+
+# Ambiente virtual Python
+.venv/
+
+# Arquivos temporários do Python
+__pycache__/
+*.pyc
