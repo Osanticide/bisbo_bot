@@ -16,6 +16,7 @@ class BisboBot(commands.Bot):
     async def setup_hook(self):
         # Carrega o módulo do comando /ping
         await self.load_extension("app.cogs.ping")
+        await self.load_extension("app.cogs.bighead")
 
         # Registra os comandos no nosso servidor
         guild = discord.Object(id=int(GUILD_ID))
