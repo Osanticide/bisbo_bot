@@ -14,7 +14,7 @@ class Ping(commands.Cog):
         name="ping", description="Verifica se o Bisbo está respondendo."
     )
     async def ping(self, interaction: discord.Interaction):
-        await interaction.response.send_message("Pong! 🏓")
+        await interaction.response.send_message("Pong! carente dms vc...")
 
 
 async def setup(bot: commands.Bot):
