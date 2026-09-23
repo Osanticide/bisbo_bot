@@ -20,13 +20,15 @@ def to_money(value: Decimal | int | str) -> Decimal:
 
     try:
         amount = Decimal(value)
+        if not amount.is_finite():
+            raise EconomyError("O valor precisa ser finito.")
+
+        return amount.quantize(CENT, rounding=ROUND_DOWN)
+
+    except EconomyError:
+        raise
     except (InvalidOperation, TypeError, ValueError):
-        raise EconomyError("Valor monetário inválido.")
-
-    if not amount.is_finite():
-        raise EconomyError("O valor precisa ser finito.")
-
-    return amount.quantize(CENT, rounding=ROUND_DOWN)
+        raise EconomyError("Valor monetário inválido.") from None
 
 
 def validate_amount(value: Decimal | int | str) -> Decimal:

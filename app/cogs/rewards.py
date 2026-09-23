@@ -1,3 +1,5 @@
+import logging
+
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -12,6 +14,9 @@ from app.services.rewards import (
     get_period_start,
     roll_reward,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 class Rewards(commands.Cog):
@@ -68,6 +73,8 @@ class Rewards(commands.Cog):
             )
             return
 
+        await interaction.response.defer(thinking=True)
+
         now = discord.utils.utcnow().astimezone(BRASILIA)
         period_start = get_period_start(reward_type, now)
 
@@ -87,19 +94,20 @@ class Rewards(commands.Cog):
             next_reward = get_next_reward_time(reward_type, now)
             timestamp = int(next_reward.timestamp())
 
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 f"❌ {error}\nVocê poderá resgatar novamente <t:{timestamp}:R>.",
                 ephemeral=True,
             )
             return
 
         except Exception:
-            print(
-                f"[REWARDS] Erro ao conceder recompensa "
-                f"{reward_type} para {interaction.user.id}."
+            logger.exception(
+                "Erro ao conceder recompensa %s para o usuário %s.",
+                reward_type,
+                interaction.user.id,
             )
 
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 "Não foi possível resgatar sua recompensa. Tente novamente mais tarde.",
                 ephemeral=True,
             )
@@ -141,7 +149,7 @@ class Rewards(commands.Cog):
 
         embed.set_footer(text="Bisbo • Sistema de Recompensas")
 
-        await interaction.response.send_message(embed=embed)
+        await interaction.followup.send(embed=embed)
 
     @reward_group.command(
         name="daily",

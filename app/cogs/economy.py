@@ -1,3 +1,5 @@
+import logging
+
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -7,6 +9,9 @@ from app.services.economy import (
     format_money,
     validate_amount,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 class Economy(commands.Cog):
@@ -21,6 +26,8 @@ class Economy(commands.Cog):
     )
     @app_commands.guild_only()
     async def saldo(self, interaction: discord.Interaction):
+        await interaction.response.defer(thinking=True)
+
         try:
             balance = await self.bot.profiles.get_balance(interaction.user.id)
 
@@ -51,14 +58,14 @@ class Economy(commands.Cog):
                 inline=False,
             )
 
-            await interaction.response.send_message(embed=embed)
+            await interaction.followup.send(embed=embed)
 
         except Exception:
-            print(
-                f"[ECONOMY] Erro ao consultar saldo do usuário {interaction.user.id}."
+            logger.exception(
+                "Erro ao consultar saldo do usuário %s.",
+                interaction.user.id,
             )
-
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 "Não foi possível consultar seu saldo. Tente novamente.",
                 ephemeral=True,
             )
@@ -74,6 +81,8 @@ class Economy(commands.Cog):
         interaction: discord.Interaction,
         valor: str,
     ):
+        await interaction.response.defer(thinking=True)
+
         try:
             amount = validate_amount(valor)
 
@@ -82,22 +91,21 @@ class Economy(commands.Cog):
                 amount,
             )
 
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 f"🏦 Você depositou **{format_money(amount)}**.\n"
                 f"👛 Carteira: {format_money(result['wallet'])}\n"
                 f"🏦 Banco: {format_money(result['bank'])}"
             )
 
         except EconomyError as error:
-            await interaction.response.send_message(
-                str(error),
-                ephemeral=True,
-            )
+            await interaction.followup.send(str(error), ephemeral=True)
 
         except Exception:
-            print(f"[ECONOMY] Erro no depósito do usuário {interaction.user.id}.")
-
-            await interaction.response.send_message(
+            logger.exception(
+                "Erro no depósito do usuário %s.",
+                interaction.user.id,
+            )
+            await interaction.followup.send(
                 "Não foi possível realizar o depósito. Tente novamente.",
                 ephemeral=True,
             )
@@ -113,6 +121,8 @@ class Economy(commands.Cog):
         interaction: discord.Interaction,
         valor: str,
     ):
+        await interaction.response.defer(thinking=True)
+
         try:
             amount = validate_amount(valor)
 
@@ -121,22 +131,21 @@ class Economy(commands.Cog):
                 amount,
             )
 
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 f"💵 Você sacou **{format_money(amount)}**.\n"
                 f"👛 Carteira: {format_money(result['wallet'])}\n"
                 f"🏦 Banco: {format_money(result['bank'])}"
             )
 
         except EconomyError as error:
-            await interaction.response.send_message(
-                str(error),
-                ephemeral=True,
-            )
+            await interaction.followup.send(str(error), ephemeral=True)
 
         except Exception:
-            print(f"[ECONOMY] Erro no saque do usuário {interaction.user.id}.")
-
-            await interaction.response.send_message(
+            logger.exception(
+                "Erro no saque do usuário %s.",
+                interaction.user.id,
+            )
+            await interaction.followup.send(
                 "Não foi possível realizar o saque. Tente novamente.",
                 ephemeral=True,
             )
