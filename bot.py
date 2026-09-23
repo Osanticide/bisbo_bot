@@ -4,6 +4,9 @@ import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 
+from app.database.connection import Database
+from app.database.profiles import ProfileRepository
+
 
 # Carrega as variáveis do arquivo .env
 load_dotenv()
@@ -13,12 +16,35 @@ GUILD_ID = os.getenv("DISCORD_GUILD_ID")
 
 
 class BisboBot(commands.Bot):
+    def __init__(self):
+        intents = discord.Intents.default()
+
+        super().__init__(
+            command_prefix="!",
+            intents=intents,
+        )
+
+        self.db = Database()
+        self.profiles = None
+
     async def setup_hook(self):
-        # Carrega o módulo do comando /ping
+        # Conecta ao PostgreSQL
+        await self.db.connect()
+
+        # Garante que a tabela de perfis exista
+        await self.db.initialize()
+
+        # Cria o repositório de perfis
+        self.profiles = ProfileRepository(self.db.pool)
+
+        # Carrega os comandos existentes
         await self.load_extension("app.cogs.ping")
         await self.load_extension("app.cogs.bighead")
 
-        # Registra os comandos no nosso servidor
+        # adiciona o sistema de perfil
+        await self.load_extension("app.cogs.profile")
+
+        # Registra os comandos no servidor
         guild = discord.Object(id=int(GUILD_ID))
 
         self.tree.copy_global_to(guild=guild)
@@ -26,13 +52,15 @@ class BisboBot(commands.Bot):
 
         print("Comandos sincronizados com o servidor Bisbo.")
 
+    async def close(self):
+        # Encerra o banco antes de fechar o bot
+        await self.db.close()
 
-# Configura as permissões de eventos que o bot receberá
-intents = discord.Intents.default()
+        await super().close()
 
 
 # Cria a instância principal do Bisbo
-bot = BisboBot(command_prefix="!", intents=intents)
+bot = BisboBot()
 
 
 @bot.event
