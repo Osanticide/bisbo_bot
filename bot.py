@@ -39,6 +39,7 @@ class BisboBot(commands.Bot):
         await self.load_extension("app.cogs.messages")
         await self.load_extension("app.cogs.economy")
         await self.load_extension("app.cogs.rewards")
+        await self.load_extension("app.cogs.transfer")
 
         guild = discord.Object(id=int(GUILD_ID))
         self.tree.copy_global_to(guild=guild)

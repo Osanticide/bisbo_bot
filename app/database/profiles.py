@@ -351,6 +351,110 @@ class ProfileRepository:
             "levels_gained": levels_gained,
         }
 
+    async def transfer(
+        self,
+        sender_id: int,
+        recipient_id: int,
+        source: str,
+        amount: Decimal | int | str,
+        bisbo_id: int,
+    ) -> dict:
+        """Transfere CP e recolhe 5% de taxa, atomicamente."""
+        amount = validate_amount(amount)
+
+        if source not in ("carteira", "banco"):
+            raise EconomyError("Conta de origem inválida.")
+        if sender_id == recipient_id:
+            raise EconomyError("Você não pode transferir CP para si mesmo.")
+        if recipient_id == bisbo_id:
+            raise EconomyError("Você não pode transferir CP diretamente para o Bisbo.")
+
+        fee = (amount * Decimal("0.05")).quantize(CENT, rounding=ROUND_HALF_UP)
+        received = amount - fee
+        if received < ZERO:
+            raise EconomyError("O valor não cobre a taxa da transferência.")
+
+        async with self.pool.acquire() as connection:
+            async with connection.transaction():
+                recipient = await connection.fetchrow(
+                    "SELECT user_id FROM profiles WHERE user_id = $1;",
+                    recipient_id,
+                )
+                if recipient is None:
+                    raise EconomyError(
+                        "O destinatário ainda não possui perfil no Bisbo."
+                    )
+
+                await connection.execute(
+                    """INSERT INTO profiles (user_id)
+                       VALUES ($1) ON CONFLICT (user_id) DO NOTHING;""",
+                    bisbo_id,
+                )
+                await connection.execute(
+                    """INSERT INTO profiles (user_id)
+                       VALUES ($1) ON CONFLICT (user_id) DO NOTHING;""",
+                    sender_id,
+                )
+
+                lock_ids = sorted({sender_id, recipient_id, bisbo_id})
+                locked = await connection.fetch(
+                    """SELECT user_id, wallet, bank, bank_interest_at
+                       FROM profiles
+                       WHERE user_id = ANY($1::BIGINT[])
+                       ORDER BY user_id
+                       FOR UPDATE;""",
+                    lock_ids,
+                )
+                profiles = {row["user_id"]: row for row in locked}
+                sender = profiles[sender_id]
+
+                if source == "banco":
+                    brasilia = ZoneInfo("America/Sao_Paulo")
+                    now = datetime.now(timezone.utc).astimezone(brasilia)
+                    today_start = datetime.combine(
+                        now.date(), time.min, tzinfo=brasilia
+                    )
+                    settled_bank, _, _ = await self._settle_bank_interest(
+                        connection, sender, today_start, brasilia
+                    )
+                    available = settled_bank
+                else:
+                    available = Decimal(sender["wallet"])
+
+                if available < amount:
+                    account_name = "banco" if source == "banco" else "carteira"
+                    raise EconomyError(
+                        f"Você não possui CP suficientes no {account_name}."
+                    )
+
+                source_column = "wallet" if source == "carteira" else "bank"
+
+                await connection.execute(
+                    f"""UPDATE profiles
+                        SET {source_column} = {source_column} - $2,
+                            updated_at = NOW()
+                        WHERE user_id = $1;""",
+                    sender_id,
+                    amount,
+                )
+                await connection.execute(
+                    f"""UPDATE profiles
+                        SET {source_column} = {source_column} + $2,
+                            updated_at = NOW()
+                        WHERE user_id = $1;""",
+                    recipient_id,
+                    received,
+                )
+                await connection.execute(
+                    """UPDATE profiles
+                       SET bank = bank + $2, updated_at = NOW()
+                       WHERE user_id = $1;""",
+                    bisbo_id,
+                    fee,
+                )
+
+        return {"debited": amount, "received": received, "fee": fee}
+
     async def apply_bank_interest(self) -> dict:
         """Aplica 1% por dia completo, capitalizado e sem retroagir sobre depósitos."""
         brasilia = ZoneInfo("America/Sao_Paulo")
