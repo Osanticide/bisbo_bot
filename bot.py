@@ -8,6 +8,8 @@ from app.database.connection import Database
 from app.database.profiles import ProfileRepository
 from app.services.xp import XPService
 
+from cli.terminal import TerminalCLI
+
 load_dotenv()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -17,6 +19,7 @@ GUILD_ID = os.getenv("DISCORD_GUILD_ID")
 class BisboBot(commands.Bot):
     def __init__(self):
         intents = discord.Intents.default()
+
         # Necessário para receber o conteúdo das mensagens no evento on_message.
         intents.message_content = True
 
@@ -25,6 +28,9 @@ class BisboBot(commands.Bot):
         self.db = Database()
         self.profiles = None
         self.xp_service = None
+
+        # CLI administrativa do Bisbo.
+        self.cli = TerminalCLI(self)
 
     async def setup_hook(self):
         await self.db.connect()
@@ -53,12 +59,14 @@ class BisboBot(commands.Bot):
     async def bank_interest_loop(self):
         try:
             result = await self.profiles.apply_bank_interest()
+
             if result["interest_paid"] > 0:
                 print(
                     f"[BANK INTEREST] Juros aplicados em "
                     f"{result['profiles_processed']} perfil(is): "
                     f"{result['interest_paid']} CP."
                 )
+
         except Exception as error:
             print(f"[BANK INTEREST] Falha ao aplicar juros: {error}")
 
@@ -67,8 +75,13 @@ class BisboBot(commands.Bot):
         await self.wait_until_ready()
 
     async def close(self):
+        # Encerra a CLI administrativa.
+        self.cli.stop()
+
+        # Encerra o loop de juros bancários.
         if self.bank_interest_loop.is_running():
             self.bank_interest_loop.cancel()
+
         await super().close()
         await self.db.close()
 
@@ -80,10 +93,16 @@ bot = BisboBot()
 async def on_ready():
     print(f"Bisbo está online como {bot.user}")
 
+    # Inicia a CLI automaticamente quando o bot fica online.
+    # O método start evita iniciar múltiplas threads em reconexões.
+    bot.cli.start()
+
 
 if __name__ == "__main__":
     if not TOKEN:
         raise ValueError("O token DISCORD_TOKEN não foi configurado.")
+
     if not GUILD_ID:
         raise ValueError("O DISCORD_GUILD_ID não foi configurado.")
+
     bot.run(TOKEN)
