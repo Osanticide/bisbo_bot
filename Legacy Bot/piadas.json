@@ -1,0 +1,68 @@
+{
+    "queda": [
+        "esqueceu que não tem asas?",
+        "testou a gravidade e... ela funciona.",
+        "papo que faltou amortecedor em",
+        "Gravidade venceu essa disputa",
+        "teste de impacto não aprovado",
+        "Cálculo de altura passou do limite de segurança",
+        "achou que era o Superman?"
+    ],
+    "fogo": [
+        "tá quentinho aí?",
+        "virou churrasco!",
+        "TOSTADO!!!",
+        "Superaquecimento crítico detectado.",
+        "Quando passa do ponto… dá nisso.",
+        "hmmm.. cheirinho de carne bem passada?",
+        "Isso aí precisava de isolamento térmico urgente.",
+        "Incêndio confirmado. Extintor: inexistente.",
+        "esqueceu o protetor solar fator 1000."
+    ],
+    "explosao": [
+        "BOOM! Virou confete.",
+        "Nunca confie em algo que pisca e faz barulho.",
+        "desmontagem espontânea concluída.",
+        "Explodiu… mas pelo menos foi rápido.",
+        "Pressão demais no sistema… kaboom.",
+        "foi jogar com TNT e deu nisso."
+    ],
+    "afogamento": [
+        "glub glub... não é um peixe.",
+        "Entrada de água onde não devia.",
+        "Sistema não é à prova d’água, confirmado.",
+        "Respiração não compatível com ambiente submerso.",
+        "Vedação zero, resultado previsível.",
+        "bebeu água demais.",
+        "esqueceu de subir para respirar."
+    ],
+    "mobs": [
+        "perdeu pro bicho mais burro do jogo.",
+        "foi amassado por um monstro.",
+        "precisa treinar mais a espada.",
+        "o que sobrou pro betinha?",
+        "OH MEU DEUS! NÃO SOBROU NADA...!!",
+        "Combate sem manutenção prévia dá nisso",
+        "Peça fraca enfrentando força excessiva."
+        
+    ],
+    "void": [
+        "abraçou o vazio.",
+        "caiu no limbo.",
+        "quando você olha pro abismo, o abismo te olha de volta...",
+        "tchau, mundo cruel!",
+        "Saiu completamente da área de operação",
+        "Sistema caiu… literalmente.",
+        "Erro crítico: entidade fora do mapa.",
+        "Limites do mundo ultrapassados.",
+        "Quando não tem chão, não tem conserto."
+    ],
+    "generico": [
+        "F no chat.",
+        "foi de base.",
+        "faleceu de causas naturais (pro jogo).",
+        "Definitivamente isso não tava no manual.",
+        "Sistema entrou em estado irreversível.",
+        "Falha inesperada detectada."
+    ]
+}

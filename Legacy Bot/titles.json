@@ -1,0 +1,53 @@
+{
+  "level_rewards": {
+    "5": "Iniciante Promissor",
+    "10": "Membro Dedicado",
+    "20": "Veterano de Guerra",
+    "30": "A Mão de Deus",
+    "50": "Alta Cúpula",
+    "100": "Desempregado"
+  },
+  "shop_items": {
+    "magnata": {
+      "nome": "Magnata",
+      "preco": 50000,
+      "descricao": "Ostentação pura."
+    },
+    "shaco": {
+      "nome": "Você é a piada aqui",
+      "preco": 500,
+      "descricao": "Você é a piada aqui."
+    },
+    "rasg_rab": {
+      "nome": "Rasgadinha do Rabino",
+      "preco": 1000,
+      "descricao": "Totalmente rasgadinha pelo rabino."
+    },
+    "rabino": {
+      "nome": "Rabino",
+      "preco": 10000,
+      "descricao": "kkkkkkkkk."
+    },
+    "oruam": {
+      "nome": "Comcubina do Oruam",
+      "preco": 2000,
+      "descricao": "Vacilou ja sabe né? kkkkkk."
+    },
+    "pid_ling": {
+      "nome": "Peida na Linguiça",
+      "preco": 100,
+      "descricao": "Não aguentou kkkkkkkkkkkkkk."
+    },
+    "pet_cup": {
+      "nome": "Pet da Cúpula",
+      "preco": 200,
+      "descricao": "A gente te da as sobras."
+    },
+    "rep_atc": {
+      "nome": "Repositor do Atacadão",
+      "preco": 1200,
+      "descricao": "Será que ela fica com repositor?"
+    }
+    
+  }
+}

@@ -2,7 +2,7 @@ import os
 
 import asyncpg
 
-from app.database.schema import PROFILE_TABLE_SQL
+from app.database.schema import PROFILE_TABLE_SQL, JOBS_TABLE_SQL
 
 
 class Database:
@@ -39,6 +39,7 @@ class Database:
 
         async with self.pool.acquire() as connection:
             await connection.execute(PROFILE_TABLE_SQL)
+            await connection.execute(JOBS_TABLE_SQL)
 
         print("[DATABASE] Estrutura inicial verificada.")
 

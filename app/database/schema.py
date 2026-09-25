@@ -76,3 +76,87 @@ BEGIN
 END;
 $$;
 """
+JOBS_TABLE_SQL = """
+CREATE TABLE IF NOT EXISTS jobs (
+    id SERIAL PRIMARY KEY,
+
+    name TEXT NOT NULL UNIQUE,
+
+    coefficient NUMERIC(10,4) NOT NULL
+        CHECK (coefficient > 0),
+
+    active BOOLEAN NOT NULL DEFAULT TRUE
+);
+
+CREATE TABLE IF NOT EXISTS job_progress (
+    user_id BIGINT NOT NULL
+        REFERENCES profiles(user_id)
+        ON DELETE CASCADE,
+
+    job_id INTEGER NOT NULL
+        REFERENCES jobs(id),
+
+    level INTEGER NOT NULL DEFAULT 1
+        CHECK (level >= 1),
+
+    xp INTEGER NOT NULL DEFAULT 0
+        CHECK (xp >= 0),
+
+    last_work_at TIMESTAMPTZ DEFAULT NULL,
+
+    PRIMARY KEY (user_id, job_id)
+);
+
+CREATE TABLE IF NOT EXISTS job_history (
+    id BIGSERIAL PRIMARY KEY,
+
+    user_id BIGINT NOT NULL
+        REFERENCES profiles(user_id)
+        ON DELETE CASCADE,
+
+    job_id INTEGER NOT NULL
+        REFERENCES jobs(id),
+
+    hired_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    abandoned_at TIMESTAMPTZ DEFAULT NULL,
+
+    CHECK (
+        abandoned_at IS NULL
+        OR abandoned_at >= hired_at
+    )
+);
+
+ALTER TABLE profiles
+ADD COLUMN IF NOT EXISTS current_job_id INTEGER;
+
+ALTER TABLE profiles
+ADD COLUMN IF NOT EXISTS job_hired_at TIMESTAMPTZ DEFAULT NULL;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'profiles_current_job_fk'
+          AND conrelid = 'profiles'::regclass
+    ) THEN
+        ALTER TABLE profiles
+        ADD CONSTRAINT profiles_current_job_fk
+        FOREIGN KEY (current_job_id)
+        REFERENCES jobs(id);
+    END IF;
+END;
+$$;
+
+CREATE UNIQUE INDEX IF NOT EXISTS job_history_one_active_per_user
+ON job_history(user_id)
+WHERE abandoned_at IS NULL;
+
+INSERT INTO jobs (name, coefficient)
+VALUES
+    ('Lenhador', 1.0000),
+    ('Pescador', 1.0500),
+    ('Repositor', 1.1000)
+ON CONFLICT (name) DO NOTHING;
+"""

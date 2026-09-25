@@ -1,0 +1,13 @@
+{
+    "1.0": {
+        "data": "23/01/2026",
+        "mudancas": [
+            "Lançamento da Cindy v1.0.",
+            "Gestão completa de servidores NeoForge via comandos de barra.",
+            "Sistema de Whitelist inteligente com sincronização automática.",
+            "Leitor de logs em tempo real com contador de jogadores e avisos de morte.",
+            "Módulo de Quotes (Frases e Imagens) com memória anti-repetição.",
+            "Básicamente tudo foi refeito do zero, e de forma melhorada."
+        ]
+    }
+}

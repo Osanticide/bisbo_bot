@@ -6,9 +6,11 @@ from dotenv import load_dotenv
 
 from app.database.connection import Database
 from app.database.profiles import ProfileRepository
+from app.database.jobs import JobRepository
 from app.services.xp import XPService
 
 from cli.terminal import TerminalCLI
+
 
 load_dotenv()
 
@@ -28,6 +30,7 @@ class BisboBot(commands.Bot):
         self.db = Database()
         self.profiles = None
         self.xp_service = None
+        self.jobs = None
 
         # CLI administrativa do Bisbo.
         self.cli = TerminalCLI(self)
@@ -38,6 +41,7 @@ class BisboBot(commands.Bot):
 
         self.profiles = ProfileRepository(self.db.pool)
         self.xp_service = XPService(self.profiles)
+        self.jobs = JobRepository(self.db.pool)
 
         await self.load_extension("app.cogs.ping")
         await self.load_extension("app.cogs.bighead")
@@ -46,6 +50,7 @@ class BisboBot(commands.Bot):
         await self.load_extension("app.cogs.economy")
         await self.load_extension("app.cogs.rewards")
         await self.load_extension("app.cogs.transfer")
+        await self.load_extension("app.cogs.jobs")
 
         guild = discord.Object(id=int(GUILD_ID))
         self.tree.copy_global_to(guild=guild)
