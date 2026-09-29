@@ -179,6 +179,11 @@ class JobRepository:
                 now = datetime.now(timezone.utc)
                 hired_at = profile["job_hired_at"]
 
+                if hired_at is None:
+                    raise JobError(
+                        "Não foi possível identificar quando seu emprego foi contratado."
+                    )
+
                 minimum_abandon_at = hired_at + MINIMUM_HIRE_TIME
 
                 if now < minimum_abandon_at:

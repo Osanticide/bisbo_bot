@@ -47,6 +47,12 @@ def calculate_work_cp(coefficient: Decimal, level: int) -> Decimal:
     return cp.quantize(CENT, rounding=ROUND_HALF_UP)
 
 
+def calculate_base_job_cp(coefficient: Decimal) -> Decimal:
+    """Calcula o pagamento base do emprego no nível 1."""
+
+    return calculate_work_cp(coefficient, 1)
+
+
 def calculate_professional_xp(cp: Decimal) -> int:
     """Calcula o XP profissional recebido pelo trabalho."""
 
