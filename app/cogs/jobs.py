@@ -2,7 +2,16 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from app.services.jobs import JobCooldownError, JobError
+from app.services.jobs import (
+    BASE_CP,
+    LEVEL_MULTIPLIER,
+    MILESTONE_MULTIPLIER,
+    PROFILE_XP_RATE,
+    PROFESSIONAL_XP_RATE,
+    JobCooldownError,
+    JobError,
+    calculate_base_job_cp,
+)
 
 
 class Jobs(commands.Cog):
@@ -32,16 +41,138 @@ class Jobs(commands.Cog):
 
         embed = discord.Embed(
             title="💼 Empregos disponíveis",
-            description="Escolha um emprego usando `/job apply <número>`.",
+            description=(
+                "Escolha um emprego usando `/job apply <número>`.\n"
+                "Os valores abaixo representam o pagamento no nível 1."
+            ),
             color=discord.Color.blurple(),
         )
 
-        lines = []
-
         for index, job in enumerate(jobs, start=1):
-            lines.append(f"**{index}.** {job['name']}")
+            coefficient = job["coefficient"]
+            base_cp = calculate_base_job_cp(coefficient)
 
-        embed.description = "\n".join(lines)
+            embed.add_field(
+                name=f"{index}. {job['name']}",
+                value=(
+                    f"💰 Base: **{BASE_CP:.0f} CP**\n"
+                    f"📈 Coeficiente: **{coefficient:.2f}x**\n"
+                    f"💵 CP no nível 1: **{base_cp:.2f} CP**"
+                ),
+                inline=False,
+            )
+
+        embed.add_field(
+            name="📊 Regras de progressão",
+            value=(
+                f"• XP profissional: **{PROFESSIONAL_XP_RATE * 100:.0f}%** do CP recebido\n"
+                f"• XP de perfil: **{PROFILE_XP_RATE * 100:.0f}%** do CP recebido\n"
+                f"• Multiplicador por nível: **{LEVEL_MULTIPLIER:.2f}x**\n"
+                f"• Marco a cada 5 níveis: **{MILESTONE_MULTIPLIER:.2f}x**"
+            ),
+            inline=False,
+        )
+
+        embed.set_footer(
+            text="Use /job info para entender como os valores são calculados."
+        )
+
+        await interaction.response.send_message(embed=embed)
+
+    @job.command(
+        name="info",
+        description="Explica como funciona o sistema de empregos.",
+    )
+    async def job_info(self, interaction: discord.Interaction):
+        embed = discord.Embed(
+            title="📚 Como funciona o sistema de empregos",
+            description=(
+                "Trabalhe, evolua sua profissão e aumente seus ganhos "
+                "conforme seu nível profissional."
+            ),
+            color=discord.Color.blurple(),
+        )
+
+        embed.add_field(
+            name="💰 Como o CP é calculado",
+            value=(
+                "O pagamento de cada trabalho começa com uma base de "
+                f"**{BASE_CP:.0f} CP** e é afetado pelo coeficiente do emprego.\n\n"
+                "A fórmula é:\n"
+                "```"
+                "CP = 1200 × coeficiente × 1,15^(nível - 1)\n"
+                "     × 1,25^floor((nível - 1) / 5)"
+                "```"
+            ),
+            inline=False,
+        )
+
+        embed.add_field(
+            name="📈 Evolução do pagamento",
+            value=(
+                f"Cada nível profissional aumenta o pagamento pelo "
+                f"multiplicador **{LEVEL_MULTIPLIER:.2f}x**.\n\n"
+                f"A cada 5 níveis existe um marco adicional de "
+                f"**{MILESTONE_MULTIPLIER:.2f}x**. "
+                "Isso faz com que a progressão acelere conforme você evolui."
+            ),
+            inline=False,
+        )
+
+        embed.add_field(
+            name="🧑‍💼 XP profissional",
+            value=(
+                f"Você recebe **{PROFESSIONAL_XP_RATE * 100:.0f}%** do CP ganho "
+                "como XP profissional.\n\n"
+                "O XP profissional é usado exclusivamente para evoluir "
+                "o nível da profissão."
+            ),
+            inline=True,
+        )
+
+        embed.add_field(
+            name="⭐ XP de perfil",
+            value=(
+                f"Você recebe **{PROFILE_XP_RATE * 100:.0f}%** do CP ganho "
+                "como XP de perfil.\n\n"
+                "Esse XP contribui para a evolução geral do seu perfil."
+            ),
+            inline=True,
+        )
+
+        embed.add_field(
+            name="🆙 Nível profissional",
+            value=(
+                "O XP necessário aumenta conforme seu nível.\n\n"
+                "**XP necessário = 1000 × nível atual**\n\n"
+                "Exemplo:\n"
+                "Nível 1 → 1.000 XP\n"
+                "Nível 2 → 2.000 XP\n"
+                "Nível 3 → 3.000 XP"
+            ),
+            inline=False,
+        )
+
+        embed.add_field(
+            name="⏱️ Cooldown de trabalho",
+            value=(
+                "Depois de trabalhar, você precisa esperar "
+                "**4 horas** para trabalhar novamente."
+            ),
+            inline=True,
+        )
+
+        embed.add_field(
+            name="📤 Abandono do emprego",
+            value=(
+                "Depois de ser contratado, é necessário permanecer "
+                "**24 horas** no emprego antes de poder abandoná-lo.\n\n"
+                "Abandonar um emprego não apaga seu progresso profissional."
+            ),
+            inline=True,
+        )
+
+        embed.set_footer(text="Use /job list para ver os empregos disponíveis.")
 
         await interaction.response.send_message(embed=embed)
 
@@ -106,15 +237,23 @@ class Jobs(commands.Cog):
             result = await self.bot.jobs.abandon_job(interaction.user.id)
 
         except JobError as error:
-            await interaction.response.send_message(
-                f"❌ {error}",
-                ephemeral=True,
-            )
+            message = f"❌ {error}"
+
+            if interaction.response.is_done():
+                await interaction.followup.send(
+                    message,
+                    ephemeral=True,
+                )
+            else:
+                await interaction.response.send_message(
+                    message,
+                    ephemeral=True,
+                )
             return
 
         embed = discord.Embed(
             title="📤 Emprego abandonado",
-            description=(f"Você abandonou o emprego de **{result['name']}**."),
+            description=f"Você abandonou o emprego de **{result['name']}**.",
             color=discord.Color.orange(),
         )
 
