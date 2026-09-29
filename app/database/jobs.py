@@ -56,6 +56,41 @@ class JobRepository:
                 user_id,
             )
 
+    async def get_job_history(self, user_id: int):
+        """Retorna os contratos do mais recente para o mais antigo."""
+        async with self.pool.acquire() as connection:
+            return await connection.fetch(
+                """
+                SELECT
+                    jh.id AS history_id,
+                    jh.job_id,
+                    j.name,
+                    j.coefficient,
+                    jh.hired_at,
+                    jh.abandoned_at,
+                    (
+                        p.current_job_id = jh.job_id
+                        AND jh.abandoned_at IS NULL
+                    ) AS is_current,
+                    jp.level,
+                    jp.xp,
+                    jp.last_work_at
+                FROM job_history jh
+                JOIN jobs j
+                    ON j.id = jh.job_id
+                JOIN profiles p
+                    ON p.user_id = jh.user_id
+                LEFT JOIN job_progress jp
+                    ON jp.user_id = jh.user_id
+                   AND jp.job_id = jh.job_id
+                WHERE jh.user_id = $1
+                ORDER BY
+                    jh.hired_at DESC,
+                    jh.id DESC
+                """,
+                user_id,
+            )
+
     async def apply_job(self, user_id: int, job_number: int):
         async with self.pool.acquire() as connection:
             async with connection.transaction():
@@ -377,7 +412,7 @@ class JobRepository:
                     "job_levels_gained": new_job_progress["levels_gained"],
                     "profile_level": new_profile_progress["level"],
                     "profile_xp_total": new_profile_progress["xp"],
-                    "profile_levels_gained": (new_profile_progress["levels_gained"]),
+                    "profile_levels_gained": new_profile_progress["levels_gained"],
                     "worked_at": now,
                     "next_work_at": next_work_at,
                 }

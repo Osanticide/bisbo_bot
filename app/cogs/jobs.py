@@ -8,10 +8,14 @@ from app.services.jobs import (
     MILESTONE_MULTIPLIER,
     PROFILE_XP_RATE,
     PROFESSIONAL_XP_RATE,
+    WORK_COOLDOWN,
     JobCooldownError,
     JobError,
     calculate_base_job_cp,
+    calculate_work_cp,
+    xp_required_for_level,
 )
+from app.ui import Paginator
 
 
 class Jobs(commands.Cog):
@@ -175,6 +179,146 @@ class Jobs(commands.Cog):
         embed.set_footer(text="Use /job list para ver os empregos disponíveis.")
 
         await interaction.response.send_message(embed=embed)
+
+    @job.command(
+        name="carteira",
+        description="Consulta seu contrato e histórico de empregos.",
+    )
+    async def job_carteira(self, interaction: discord.Interaction):
+        history = await self.bot.jobs.get_job_history(interaction.user.id)
+
+        if not history:
+            await interaction.response.send_message(
+                "📭 Você ainda não possui nenhum contrato de emprego.",
+                ephemeral=True,
+            )
+            return
+
+        async def build_embed(contract, page, total):
+            is_current = contract["is_current"]
+
+            status = "🟢 Contrato atual" if is_current else "📁 Contrato encerrado"
+
+            title = "💼 Carteira profissional"
+
+            if page > 0:
+                title = "📁 Histórico profissional"
+
+            embed = discord.Embed(
+                title=title,
+                color=(
+                    discord.Color.green() if is_current else discord.Color.blurple()
+                ),
+            )
+
+            embed.add_field(
+                name="Emprego",
+                value=f"**{contract['name']}**",
+                inline=False,
+            )
+
+            embed.add_field(
+                name="Status",
+                value=status,
+                inline=True,
+            )
+
+            embed.add_field(
+                name="Coeficiente",
+                value=f"**{contract['coefficient']:.2f}x**",
+                inline=True,
+            )
+
+            hired_at = int(contract["hired_at"].timestamp())
+
+            embed.add_field(
+                name="Contratado em",
+                value=f"<t:{hired_at}:F>",
+                inline=False,
+            )
+
+            if contract["abandoned_at"] is not None:
+                abandoned_at = int(contract["abandoned_at"].timestamp())
+
+                embed.add_field(
+                    name="Encerrado em",
+                    value=f"<t:{abandoned_at}:F>",
+                    inline=False,
+                )
+
+            if is_current:
+                level = contract["level"] or 1
+                xp = contract["xp"] or 0
+                xp_required = xp_required_for_level(level)
+
+                work_cp = calculate_work_cp(
+                    contract["coefficient"],
+                    level,
+                )
+
+                embed.add_field(
+                    name="Nível profissional",
+                    value=f"**{level}**",
+                    inline=True,
+                )
+
+                embed.add_field(
+                    name="XP profissional",
+                    value=f"**{xp:,} / {xp_required:,} XP**",
+                    inline=True,
+                )
+
+                embed.add_field(
+                    name="Pagamento atual",
+                    value=f"**{work_cp:.2f} CP** por trabalho",
+                    inline=False,
+                )
+
+                last_work_at = contract["last_work_at"]
+
+                if last_work_at is not None:
+                    next_work_at = last_work_at + WORK_COOLDOWN
+                    next_timestamp = int(next_work_at.timestamp())
+
+                    embed.add_field(
+                        name="Próximo trabalho",
+                        value=f"<t:{next_timestamp}:R>",
+                        inline=True,
+                    )
+
+            if total > 1:
+                embed.set_footer(
+                    text=(
+                        f"Contrato {page + 1} de {total} • "
+                        "⬅️ mais recente • ➡️ mais antigo"
+                    )
+                )
+            else:
+                embed.set_footer(text="Seu histórico possui 1 contrato.")
+
+            return embed
+
+        view = Paginator(
+            interaction,
+            history,
+            build_embed,
+        )
+
+        embed, file = await view.build_page()
+
+        if file is not None:
+            await interaction.response.send_message(
+                embed=embed,
+                file=file,
+                view=view,
+            )
+        else:
+            await interaction.response.send_message(
+                embed=embed,
+                view=view,
+            )
+
+        view.message = await interaction.original_response()
 
     @job.command(
         name="apply",
@@ -347,7 +491,6 @@ class Jobs(commands.Cog):
         next_timestamp = int(result["next_work_at"].timestamp())
 
         embed.set_footer(text="Próximo trabalho disponível")
-
         embed.description = f"Você poderá trabalhar novamente <t:{next_timestamp}:R>."
 
         await interaction.response.send_message(embed=embed)
